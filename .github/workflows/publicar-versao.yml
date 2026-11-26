@@ -1,0 +1,33 @@
+name: Publicar versão
+
+# Cria a release automaticamente quando o versao.json muda na main.
+# A tag é "v" + versionName e os anexos têm os nomes que o app da TV procura.
+on:
+  push:
+    branches: [main]
+    paths: [versao.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Criar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOME=$(jq -r .versionName versao.json)
+          TAG="v$NOME"
+          test -f alertas-do-boteco.apk
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "A release $TAG já existe, nada a fazer."
+            exit 0
+          fi
+          gh release create "$TAG" alertas-do-boteco.apk versao.json \
+            --title "Versão $NOME" \
+            --notes "Publicada automaticamente a partir do versao.json." \
+            --latest
